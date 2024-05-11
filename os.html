@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banker's Algorithm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" ></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+<link rel="stylesheet" type="text/css" href="custom.css">
+</head>
+<body>
+  <br>
+<center><h2>Banker's Algorithm</h2></center>
+<form class="form-inline">
+    <div class="dropdown">
+        <button class="btn btn-success drop dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Input Type
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a class="dropdown-item" data-value=1 href="#">Enter manually</a>
+          <a class="dropdown-item" data-value=2 href="#">Upload File</a>
+          <a class="dropdown-item" data-value=3 href="#">View Example</a>
+        </div>
+      </div>
+</form>
+<form class="form-inline" id="gridForm"></form>
+<form class="form-inline" id="file"></form>
+<div id="available" class="grid-box container"></div>
+<div id='grid-box' class="grid-box container"></div>
+<div id="req" class="grid-box container"></div>
+<div id="submit" class="sub1"></div>
+<div id="result" class="grid-box container result"></div>
+<div id="exp" class="grid-box container"></div>
+
+
+<script>
+  function createInputFields() {
+    var spacer = document.createElement('div');
+    spacer.classList.add('break');
+    var labelProcesses = document.createElement('label');
+    labelProcesses.setAttribute('for', 'rows');
+    labelProcesses.textContent = 'Enter number of processes:';
+    
+    var inputProcesses = document.createElement('input');
+    inputProcesses.classList.add('form-control');
+    inputProcesses.classList.add('inp');
+    inputProcesses.setAttribute('type', 'number');
+    inputProcesses.setAttribute('id', 'rows');
+    inputProcesses.setAttribute('name', 'rows');
+    inputProcesses.setAttribute('min', '1');
+    inputProcesses.setAttribute('required', '');
+
+    var labelResources = document.createElement('label');
+    labelResources.setAttribute('for', 'columns');
+    labelResources.textContent = 'Enter number of resources:';
+    
+    var inputResources = document.createElement('input');
+    inputResources.classList.add('form-control');
+    inputResources.classList.add('inp');
+    inputResources.setAttribute('type', 'number');
+    inputResources.setAttribute('id', 'columns');
+    inputResources.setAttribute('name', 'columns');
+    inputResources.setAttribute('min', '1');
+    inputResources.setAttribute('required', '');
+
+    var submit=document.createElement('button');
+    submit.setAttribute('type','submit');
+    submit.setAttribute('id','input_submit');
+    submit.classList.add('sub');
+    submit.textContent='Submit';
+
+    var form = document.getElementById('gridForm');
+    form.appendChild(spacer);
+    form.appendChild(labelProcesses);
+    form.appendChild(inputProcesses);
+    form.appendChild(labelResources);
+    form.appendChild(inputResources);
+    form.appendChild(submit);
+}
+function createFileUpl(){
+
+    var form = document.getElementById('file');
+    form.setAttribute('method','POST');
+    form.setAttribute('enctype', 'multipart/form-data');
+
+    var fileInput = document.createElement('input');
+    fileInput.setAttribute('type', 'file');
+    fileInput.setAttribute('id', 'fileUpload');
+    fileInput.setAttribute('name','file');
+    fileInput.classList.add('form-control','upload');
+    
+    form.appendChild(fileInput);
+
+    var fsub2=document.createElement('button');
+    fsub2.classList.add('sub');
+    fsub2.setAttribute('type','submit');
+    fsub2.textContent='View Safe Sequence'
+    form.appendChild(fsub2);
+}
+function createAvailable(){
+        document.getElementById('available').innerHTML='';
+        var grid=document.createElement('div');
+        grid.classList.add('box');
+        var grid_box=document.getElementById('available');
+        var columns = parseInt(document.getElementById('columns').value);
+
+        var head = document.createElement('div');
+        head.classList.add('row');
+        var colb = document.createElement('div');
+        colb.classList.add('col');
+        colb.classList.add('column');
+        head.appendChild(colb);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var text=document.createElement('p');
+                text.textContent="R"+j.toString();
+                text.style.textAlign='center';
+                col.appendChild(text);
+                head.appendChild(col);
+        }
+        grid.appendChild(head);
+
+        var row = document.createElement('div');
+        row.classList.add('row');
+
+        var col = document.createElement('div');
+        col.classList.add('col');
+        col.classList.add('column');
+        var text=document.createElement('h5');
+        text.textContent="Available: ";
+        text.style.textAlign='center';
+        col.appendChild(text);
+        row.appendChild(col);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('grid');
+                input.setAttribute('id','av'+j.toString())
+                input.type = 'text';
+                col.appendChild(input);
+                row.appendChild(col);
+        }
+        grid.appendChild(row);
+        grid_box.appendChild(grid);
+}
+function createGridAlloc(){
+        var side1=document.createElement('div');
+        side1.classList.add('side1')
+        var proc=document.createElement('div');
+        proc.classList.add('proc');
+        var proc_text=document.createElement('h5');
+        proc_text.classList.add('vertical-text');
+        proc_text.textContent='Processes';
+        proc.appendChild(proc_text);
+        var grid=document.createElement('div');
+        grid.classList.add('box');
+
+        side1.appendChild(proc);
+        side1.append(grid);
+
+        var grid_box=document.getElementById('grid-box');
+        grid_box.innerHTML='';
+        var but=document.getElementById('submit');
+        but.innerHTML='';
+        grid_box.appendChild(side1);
+        var rows = parseInt(document.getElementById('rows').value);
+        var columns = parseInt(document.getElementById('columns').value);
+
+        var text=document.createElement('h5');
+        text.textContent='Resources';
+        text.style.textAlign="center";
+        text.classList.add('head');
+        var all=document.createElement('h4');
+        all.textContent='ALLOCATION';
+        all.style.textAlign="center";
+        all.classList.add('head');
+        grid.innerHTML = '';
+        grid.appendChild(all);
+        grid.appendChild(text);
+        var head = document.createElement('div');
+        head.classList.add('row');
+        var col1 = document.createElement('div');
+        col1.classList.add('col');
+        col1.classList.add('column');
+        head.appendChild(col1);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var text=document.createElement('p');
+                text.textContent="R"+j.toString();
+                text.style.textAlign='center';
+                col.appendChild(text);
+                head.appendChild(col);
+        }
+        grid.appendChild(head);
+        for (var i = 0; i < rows; i++) {
+            var row = document.createElement('div');
+            row.classList.add('row');
+            var col_p = document.createElement('div');
+            col_p.classList.add('col');
+            col_p.classList.add('column');
+            var text2=document.createElement('p');
+            text2.textContent="P"+i.toString();
+            text2.style.textAlign='center';
+            col_p.appendChild(text2);
+            row.appendChild(col_p);
+            for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('grid');
+                input.setAttribute('id','a'+i.toString()+j.toString())
+                input.type = 'text';
+                col.appendChild(input);
+                row.appendChild(col);
+            }
+            grid.appendChild(row);
+        }
+        var fsub1=document.createElement('button');
+        fsub1.classList.add('sub');
+        fsub1.setAttribute('type','submit');
+        fsub1.textContent='View Safe Sequence'
+        fsub1.onclick=input_submit;
+        but.appendChild(fsub1);
+
+
+        var dropdownDiv = document.createElement("div");
+        dropdownDiv.className = "dropdown";
+
+        var button = document.createElement("button");
+        button.className = "btn btn-success drop dropdown-toggle";
+        button.type = "button";
+        button.id = "dropdownMenuButton";
+        button.setAttribute("data-bs-toggle", "dropdown");
+        button.setAttribute("aria-haspopup", "true");
+        button.setAttribute("aria-expanded", "false");
+        button.textContent = "Resource Request";
+
+        var dropdownMenu = document.createElement("div");
+        dropdownMenu.className = "dropdown-menu";
+        dropdownMenu.setAttribute("aria-labelledby", "dropdownMenuButton");
+        var none = document.createElement("a");
+        none.classList.add("dropdown-item","allot");
+        none.setAttribute("data-value", 0);
+        none.setAttribute('selected','selected');
+        none.href = "#";
+        none.textContent = "None";
+        dropdownMenu.appendChild(none);
+
+        for (var i = 1; i <= rows; i++) {
+                var reqItem = document.createElement("a");
+                reqItem.classList.add("dropdown-item",'allot');
+                reqItem.setAttribute("data-value", i);
+                reqItem.href = "#";
+                reqItem.textContent = "Process " + (i-1);
+                dropdownMenu.appendChild(reqItem);
+        }
+
+
+        dropdownDiv.appendChild(button);
+        dropdownDiv.appendChild(dropdownMenu);
+
+        var container = document.getElementById("req");
+        container.appendChild(dropdownDiv);
+}
+function createGridMax(){
+        var side2=document.createElement('div');
+        side2.classList.add('side2')
+        var proc=document.createElement('div');
+        proc.classList.add('proc');
+        var proc_text=document.createElement('h5');
+        proc_text.classList.add('vertical-text');
+        proc_text.textContent='Processes';
+        proc.appendChild(proc_text);
+        var grid=document.createElement('div');
+        grid.classList.add('box');
+
+        side2.appendChild(proc);
+        side2.append(grid);
+
+        var grid_box=document.getElementById('grid-box');
+        var but=document.getElementById('submit');
+        grid_box.appendChild(side2);
+        var rows = parseInt(document.getElementById('rows').value);
+        var columns = parseInt(document.getElementById('columns').value);
+
+        var text=document.createElement('h5');
+        var max=document.createElement('h4');
+        text.textContent='Resources';
+        text.style.textAlign="center";
+        text.classList.add('head');
+        max.textContent='MAXIMUM';
+        max.style.textAlign="center";
+        max.classList.add('head');
+        grid.innerHTML = '';
+        grid.appendChild(max);
+        grid.appendChild(text);
+        var head = document.createElement('div');
+        head.classList.add('row');
+        var col1 = document.createElement('div');
+        col1.classList.add('col');
+        col1.classList.add('column');
+        head.appendChild(col1);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var text=document.createElement('p');
+                text.textContent="R"+j.toString();
+                text.style.textAlign='center';
+                col.appendChild(text);
+                head.appendChild(col);
+        }
+        grid.appendChild(head);
+        for (var i = 0; i < rows; i++) {
+            var row = document.createElement('div');
+            row.classList.add('row');
+            var col_p = document.createElement('div');
+            col_p.classList.add('col');
+            col_p.classList.add('column');
+            var text2=document.createElement('p');
+            text2.textContent="P"+i.toString();
+            text2.style.textAlign='center';
+            col_p.appendChild(text2);
+            row.appendChild(col_p);
+            for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('grid');
+                input.type = 'text';
+                input.setAttribute('id','m'+i.toString()+j.toString())
+                col.appendChild(input);
+                row.appendChild(col);
+            }
+            grid.appendChild(row);
+        }
+}
+function allocate(){
+        document.getElementById('req').innerHTML='';
+        var grid=document.createElement('div');
+        grid.classList.add('box');
+        var grid_box=document.getElementById('req');
+        var columns = parseInt(document.getElementById('columns').value);
+
+        var head = document.createElement('div');
+        head.classList.add('row');
+        var colb = document.createElement('div');
+        colb.classList.add('col');
+        colb.classList.add('column');
+        head.appendChild(colb);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var text=document.createElement('p');
+                text.textContent="R"+j.toString();
+                text.style.textAlign='center';
+                col.appendChild(text);
+                head.appendChild(col);
+        }
+        grid.appendChild(head);
+
+        var row = document.createElement('div');
+        row.classList.add('row');
+
+        var col = document.createElement('div');
+        col.classList.add('col');
+        col.classList.add('column');
+        var text=document.createElement('h5');
+        text.textContent="Request: ";
+        text.style.textAlign='center';
+        col.appendChild(text);
+        row.appendChild(col);
+        for (var j = 0; j < columns; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('grid');
+                input.setAttribute('id','r'+j.toString())
+                input.type = 'text';
+                col.appendChild(input);
+                row.appendChild(col);
+        }
+        grid.appendChild(row);
+        grid_box.appendChild(grid);
+    
+    
+}
+
+
+function input_submit(){
+  var AllocinputValues = [];
+  var MaxinputValues = [];
+  var available=[];
+  var request=[];
+
+    var rows = parseInt(document.getElementById('rows').value);
+    var columns = parseInt(document.getElementById('columns').value);
+
+    for (var i = 0; i < rows; i++) {
+      var rowa=[];
+      var rowm=[];
+      for (var j = 0; j < columns; j++) {
+            var inputIda ='a'+ i.toString() + j.toString();
+            var inputIdm ='m'+ i.toString() + j.toString();
+            var valuea = parseInt(document.getElementById(inputIda).value);
+            var valuem = parseInt(document.getElementById(inputIdm).value);
+            rowa.push(valuea);
+            rowm.push(valuem);
+      }
+      AllocinputValues.push(rowa);
+      MaxinputValues.push(rowm);
+    }
+    for (var j = 0; j < columns; j++) {
+      var inputIDa="av"+j.toString();
+      var inputr="r"+j.toString();
+      if(req_process!=0){
+        var req= parseInt(document.getElementById(inputr).value);
+      }
+      else{
+        var req= 0;
+      }
+      var avail= parseInt(document.getElementById(inputIDa).value);
+      available.push(avail);
+      request.push(req);
+    }
+    var obj=JSON.stringify({A: AllocinputValues,M:MaxinputValues, AV: available, R: request, by: req_process})
+    console.log(AllocinputValues);
+    console.log(MaxinputValues);
+    console.log(available);
+    fetch("http://127.0.0.1:5000/manual", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: obj
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+      if(data['seq']===1){
+        displayRes(data);
+        exp(data);
+      }
+      else{
+        noseq(data);
+      }
+    })
+    .catch(error => {
+        err();
+    });
+}
+function example(){
+  createInputFields();
+  document.getElementById('rows').value=5;
+  document.getElementById('rows').readOnly=true;
+  document.getElementById('columns').value=4;
+  document.getElementById('columns').readOnly=true;
+  document.getElementById('input_submit').style.display="none";
+  createAvailable();
+  createGridAlloc();
+  createGridMax();
+  var all=[[4,0,0,1],[1,1,0,0],[1,2,5,4],[0,6,3,3],[0,2,1,2]];
+  var max=[[6,0,1,2],[2,7,5,0],[2,3,5,6],[1,6,5,3],[1,6,5,6]];
+  var avail=[3,2,1,1]
+  for(var i=0;i<5;i++){
+    for(var j=0;j<4;j++){
+      document.getElementById("a"+i.toString()+j.toString()).value=all[i][j];
+      document.getElementById("a"+i.toString()+j.toString()).readOnly=true;
+      document.getElementById("m"+i.toString()+j.toString()).value=max[i][j];
+      document.getElementById("m"+i.toString()+j.toString()).readOnly=true;
+    }
+  }
+  for(var j=0;j<4;j++){
+    document.getElementById('av'+j.toString()).value=avail[j];
+    document.getElementById('av'+j.toString()).readOnly=true;
+  }
+
+}
+function displayRes(data){
+    var box=document.getElementById('result');
+    box.innerHTML='';
+    var seq=data['response'];
+    var row=document.createElement('div');
+    row.classList.add('row');
+    var col=document.createElement('div');
+    col.classList.add('col','column');
+    var title=document.createElement('h5');
+    title.textContent='Safe Sequence'
+    col.appendChild(title);
+    row.appendChild(col);
+    for(var i=0;i<seq.length;i++){
+      var col=document.createElement('div');
+      col.classList.add('col','column');
+      var inp=document.createElement('input');
+      inp.classList.add('form-control');
+      inp.value=parseInt(seq[i]);
+      inp.readOnly=true;
+      col.appendChild(inp);
+      row.appendChild(col);
+    }
+    var row2=document.createElement('br');
+    box.appendChild(row);
+    box.appendChild(row2);
+    box.appendChild(row2);
+}
+function err(){
+    var box=document.getElementById('result');
+    box.innerHTML='';
+    var row=document.createElement('div');
+    row.classList.add('row');
+    var title=document.createElement('h5');
+    title.textContent='An error occurred!'
+    row.appendChild(title);
+    box.appendChild(row);
+}
+function noseq(data){
+  var box=document.getElementById('result');
+    box.innerHTML='';
+    var seq=data['response'];
+    var row=document.createElement('div');
+    row.classList.add('row');
+    var title=document.createElement('h5');
+    title.textContent=seq;
+    title.style.color='red';
+    row.appendChild(title);
+    box.appendChild(row);
+}
+function exp(data){
+        var need=data['need'];
+        var side1=document.createElement('div');
+        side1.classList.add('side1')
+        var proc=document.createElement('div');
+        proc.classList.add('proc');
+        var proc_text=document.createElement('h5');
+        proc_text.classList.add('vertical-text');
+        proc_text.textContent='Processes';
+        proc.appendChild(proc_text);
+        var grid=document.createElement('div');
+        grid.classList.add('box');
+
+        side1.appendChild(proc);
+        side1.append(grid);
+
+        var grid_box=document.getElementById('exp');
+        grid_box.innerHTML='';
+        grid_box.appendChild(side1);
+
+        var text=document.createElement('h5');
+        var max=document.createElement('h4');
+        text.textContent='Resources';
+        text.style.textAlign="center";
+        text.classList.add('head');
+        max.textContent='NEED';
+        max.style.textAlign="center";
+        max.classList.add('head');
+        grid.innerHTML = '';
+        grid.appendChild(max);
+        grid.appendChild(text);
+        var head = document.createElement('div');
+        head.classList.add('row');
+        var col1 = document.createElement('div');
+        col1.classList.add('col');
+        col1.classList.add('column');
+        head.appendChild(col1);
+        for (var j = 0; j < need[0].length; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var text=document.createElement('p');
+                text.textContent="R"+j.toString();
+                text.style.textAlign='center';
+                col.appendChild(text);
+                head.appendChild(col);
+        }
+        grid.appendChild(head);
+        for (var i = 0; i < need.length; i++) {
+            var row = document.createElement('div');
+            row.classList.add('row');
+            var col_p = document.createElement('div');
+            col_p.classList.add('col');
+            col_p.classList.add('column');
+            var text2=document.createElement('p');
+            text2.textContent="P"+i.toString();
+            text2.style.textAlign='center';
+            col_p.appendChild(text2);
+            row.appendChild(col_p);
+            for (var j = 0; j < need[0].length; j++) {
+                var col = document.createElement('div');
+                col.classList.add('col');
+                col.classList.add('column');
+                var input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('grid');
+                input.type = 'text';
+                input.value=need[i][j];
+                input.readOnly=true;
+                col.appendChild(input);
+                row.appendChild(col);
+            }
+            grid.appendChild(row);
+        }
+        var spacer = document.createElement('br');
+        var side2=document.createElement('div');
+        side2.classList.add('exp');
+        var lines = data['exp'].split("\n");
+        side2.append(spacer);
+        side2.append(spacer);
+        for(var j=0;j<lines.length;j++){
+          var text=document.createElement('p');
+          text.textContent=lines[j];
+          side2.append(text);
+          side2.append(spacer);
+        }
+        grid_box.appendChild(side2);
+}
+document.querySelectorAll('.dropdown-item').forEach(item => {
+  item.addEventListener('click', event => {
+    const selectedValue = event.target.getAttribute('data-value');
+    document.getElementById('gridForm').innerHTML='';
+    document.getElementById('grid-box').innerHTML='';
+    document.getElementById('submit').innerHTML='';
+    document.getElementById('file').innerHTML='';
+    document.getElementById('available').innerHTML='';
+    document.getElementById('req').innerHTML='';
+    document.getElementById('result').innerHTML='';
+    document.getElementById('exp').innerHTML='';
+    if(selectedValue==1){
+      createInputFields();
+    }
+    else if(selectedValue==2){
+      createFileUpl();
+    }
+    else{
+      example();
+    }
+  });
+});
+var req_process=0;
+document.getElementById("req").addEventListener("click", function(event) {
+    if (event.target.classList.contains("allot")) {
+        event.preventDefault(); // Prevent default action
+        const selectedValue = parseInt(event.target.getAttribute("data-value"));
+        console.log(selectedValue);
+        req_process=selectedValue;
+        if (selectedValue !== 0) {
+            allocate();
+        }
+    }
+});
+document.getElementById('gridForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      document.getElementById('req').innerHTML='';
+      document.getElementById('result').innerHTML='';
+      document.getElementById('exp').innerHTML='';
+      createAvailable();
+      createGridAlloc();
+      createGridMax();
+});
+document.getElementById('file').addEventListener('submit', function(event) {
+    event.preventDefault();
+    var formData = new FormData(this);
+
+    fetch("http://127.0.0.1:5000/upload", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+      if(data['seq']===1){
+        displayRes(data);
+        exp(data);
+      }
+      else{
+        noseq(data);
+      }
+    })
+    .catch(error => {
+        err();
+        console.log(error);
+    });
+});
+
+</script>
+
+</body>
+</html>
